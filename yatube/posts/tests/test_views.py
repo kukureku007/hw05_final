@@ -3,8 +3,10 @@ from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from django.core.cache import cache
+
 from ..models import Group, Post, User
-from .fixtures_posts import FixturesData as FD
+from .fixtures import FixturesData as FD
 
 POSTS_TO_SHOW = settings.POSTS_TO_SHOW
 
@@ -48,6 +50,7 @@ class ViewsTests(TestCase):
         )
 
     def setUp(self):
+        cache.clear()
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_author = Client()
@@ -151,6 +154,8 @@ class TemplateViewsTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
 
+        cls.fixtures = FD()
+
         cls.author_1 = User.objects.create_user(
             username=FD.AUTHOR_USERNAME_1)
         cls.author_2 = User.objects.create_user(
@@ -184,22 +189,10 @@ class TemplateViewsTest(TestCase):
             text=FD.TEST_POST_WO_GROUP_TEXT,
         )
 
-        # добавляем в список аргументы, для сборки требуемого адреса
-        FD.urls_unauthorized[
-            'posts:post_detail'][0].append(cls.post_1.pk)
-        FD.urls_unauthorized[
-            'posts:post_edit'][0].append(cls.post_1.pk)
-        FD.urls_unauthorized[
-            'posts:group_list'][0].append(FD.TEST_GROUP_SLUG_1)
-        FD.urls_unauthorized[
-            'posts:profile'][0].append(FD.AUTHOR_USERNAME_1)
-
-        FD.urls_authorized[
-            'posts:post_edit'][0].append(cls.post_1.pk)
-        FD.urls_author[
-            'posts:post_edit'][0].append(cls.post_1.pk)
+        cls.fixtures.make_dict_reverse(cls.post_1, cls.group_1)
 
     def setUp(self):
+        cache.clear()
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_author = Client()
@@ -222,11 +215,11 @@ class TemplateViewsTest(TestCase):
         """Тестирование шаблонов и адресов
         с использованием reverse."""
         self.check_reverse_urls_templates(
-            FD.urls_unauthorized, self.guest_client)
+            self.fixtures.URLS_UNAUTHORIZED, self.guest_client)
         self.check_reverse_urls_templates(
-            FD.urls_authorized, self.authorized_client)
+            self.fixtures.URLS_AUTHORIZED, self.authorized_client)
         self.check_reverse_urls_templates(
-            FD.urls_author, self.authorized_author)
+            self.fixtures.URLS_AUTHOR, self.authorized_author)
 
 
 class PaginatorViewsTest(TestCase):
@@ -248,17 +241,18 @@ class PaginatorViewsTest(TestCase):
             )
 
     def setUp(self):
+        cache.clear()
         self.guest_client = Client()
 
     def test_paginator_page(self):
         """Тестирование паджинатора"""
-        for url in FD.urls_paginator.keys():
+        for url in FD.URLS_PAGINATOR.keys():
             with self.subTest(url=url):
                 response = self.client.get(reverse(
-                    url, args=FD.urls_paginator[url]))
+                    url, args=FD.URLS_PAGINATOR[url]))
                 self.assertEqual(len(response.context['page_obj']),
                                  POSTS_TO_SHOW)
                 response = self.client.get(reverse(
-                    url, args=FD.urls_paginator[url]) + '?page=2')
+                    url, args=FD.URLS_PAGINATOR[url]) + '?page=2')
                 self.assertEqual(len(response.context['page_obj']),
                                  FD.POST_NUM - POSTS_TO_SHOW)

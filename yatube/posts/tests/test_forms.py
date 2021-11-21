@@ -2,7 +2,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from ..models import Group, Post, User
-from .fixtures_posts import FixturesData as FD
+from .fixtures import FixturesData as FD
 
 
 class PostsFormsTests(TestCase):
