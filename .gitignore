@@ -144,9 +144,9 @@ dmypy.json
 .history/
 
 .mypy_cache
+.idea
+.DS_Store
 
-# папки со статикой и медиа
-static/
-yatube/posts/static/
+yatube/static/
+yatube/sent_emails/
 yatube/media/
-
