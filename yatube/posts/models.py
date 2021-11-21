@@ -95,4 +95,4 @@ class Follow(models.Model):
         verbose_name_plural = 'Подписки'
 
     def __str__(self):
-        return str(f'{self.user.username}+{self.author.username}')
+        return str(f'{self.user.username}->{self.author.username}')
