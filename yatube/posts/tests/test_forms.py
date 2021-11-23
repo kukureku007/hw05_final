@@ -98,18 +98,6 @@ class CommentFormsTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.author)
 
-    def test_guest_comment(self):
-        """Тест переадресации на логин для неавторизованного пользователя"""
-        response = self.guest_client.get(self.comment_url)
-
-        self.assertRedirects(
-            response,
-            f'{reverse("users:login")}?next={self.comment_url}',
-            status_code=302,
-            target_status_code=200,
-            fetch_redirect_response=True
-        )
-
     def test_authorized_comment(self):
         """
         Авторизованный пользователь может оставить комментарий к посту,

@@ -22,6 +22,8 @@ class ViewsTests(TestCase):
             username=FD.AUTHOR_USERNAME_2)
         cls.user = User.objects.create_user(
             username=FD.USER_USERNAME)
+        cls.user_1 = User.objects.create_user(
+            username=FD.USER_USERNAME_1)
 
         cls.group_1 = Group.objects.create(
             title=FD.TEST_GROUP_TITLE_1,
@@ -53,9 +55,11 @@ class ViewsTests(TestCase):
         cache.clear()
         self.guest_client = Client()
         self.authorized_client = Client()
+        self.authorized_client_1 = Client()
         self.authorized_author = Client()
 
         self.authorized_client.force_login(self.user)
+        self.authorized_client_1.force_login(self.user_1)
         self.authorized_author.force_login(self.author_1)
 
     def check_post_present(self, url, args, post):
@@ -163,6 +167,46 @@ class ViewsTests(TestCase):
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
+
+    def test_context_follows(self):
+        """Новая запись пользователя появляется
+        в ленте тех, кто на него подписан и не
+        появляется в ленте тех, кто не подписан."""
+        # user
+        self.authorized_client.get(
+            reverse('posts:profile_follow', args=(
+                self.author_1.username,))
+        )
+        # user
+        response_follow = self.authorized_client.get(
+            reverse('posts:follow_index')
+        )
+        # user_1
+        response_nofollow = self.authorized_client_1.get(
+            reverse('posts:follow_index')
+        )
+        self.assertIn(self.post_1, response_follow.context['page_obj'])
+        self.assertNotIn(self.post_1, response_nofollow.context['page_obj'])
+
+    def test_follows(self):
+        """Тест что юзер подписался и отписался от автора"""
+        self.assertFalse(
+            self.author_1.following.filter(user=self.user).exists()
+        )
+        self.authorized_client.get(
+            reverse('posts:profile_follow', args=(
+                self.author_1.username,))
+        )
+        self.assertTrue(
+            self.author_1.following.filter(user=self.user).exists()
+        )
+        self.authorized_client.get(
+            reverse('posts:profile_unfollow', args=(
+                self.author_1.username,))
+        )
+        self.assertFalse(
+            self.author_1.following.filter(user=self.user).exists()
+        )
 
 
 class TemplateViewsTest(TestCase):

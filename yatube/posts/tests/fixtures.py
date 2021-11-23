@@ -18,6 +18,7 @@ class FixturesData():
     AUTHOR_USERNAME_1 = 'SteveJ'
     AUTHOR_USERNAME_2 = 'SteveV'
     USER_USERNAME = 'SteveO'
+    USER_USERNAME_1 = 'Hohoho'
 
     POST_TEXT = 'text'
     POST_NUM = 13
@@ -26,6 +27,7 @@ class FixturesData():
         'posts:home_page': None,
         'posts:group_list': (TEST_GROUP_SLUG_1,),
         'posts:profile': (AUTHOR_USERNAME_1,),
+        # 'posts:follow_index': None,
     }
 
     def __init__(self) -> None:

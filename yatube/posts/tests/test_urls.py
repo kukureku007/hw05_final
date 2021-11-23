@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from django.urls import reverse
 from django.test import Client, TestCase
 from django.core.cache import cache
 
@@ -30,6 +31,7 @@ class URLTests(TestCase):
         )
 
         cls.fixtures.make_dict(cls.post, cls.group)
+        cls.post_id = Post.objects.first().pk
 
     def setUp(self):
         cache.clear()
@@ -73,3 +75,29 @@ class URLTests(TestCase):
         """Проверка доступности адресов для автора поста."""
         self.check_urls_templates(
             self.fixtures.URLS_AUTHOR, self.authorized_author)
+
+    def test_guest_comment_redirect_login(self):
+        """Тест переадресации на логин для неавторизованного пользователя"""
+        comment_url = reverse('posts:add_comment', args=(self.post_id,))
+        response = self.guest_client.get(comment_url)
+
+        self.assertRedirects(
+            response,
+            f'{reverse("users:login")}?next={comment_url}',
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=True
+        )
+
+    def test_guest_follow_redirect_login(self):
+        """Тест переадресации на логин для неавторизованного пользователя"""
+        follow_url = reverse('posts:follow_index')
+        response = self.guest_client.get(follow_url)
+
+        self.assertRedirects(
+            response,
+            f'{reverse("users:login")}?next={follow_url}',
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=True
+        )
