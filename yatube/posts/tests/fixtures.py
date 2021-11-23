@@ -30,26 +30,37 @@ class FixturesData():
 
     def __init__(self) -> None:
         """создание базовых словарей для тестов
-        reverse: reverse-args, HTTPStatus, template, url."""
+        name: reverse-args, HTTPStatus, template, url.
+        1.Добавлены тесты страниц комментариев"""
         self.URLS_UNAUTHORIZED = {
             'posts:home_page': [
                 [], HTTPStatus.OK,
-                'posts/index.html', '/'],
+                'posts/index.html', '/'
+            ],
             'posts:group_list': [
                 [], HTTPStatus.OK,
-                'posts/group_list.html', '/group/{slug}/'],
+                'posts/group_list.html', '/group/{slug}/'
+            ],
             'posts:profile': [
                 [], HTTPStatus.OK,
-                'posts/profile.html', '/profile/{username}/'],
+                'posts/profile.html', '/profile/{username}/'
+            ],
             'posts:post_detail': [
                 [], HTTPStatus.OK,
-                'posts/post_detail.html', '/posts/{post_id}/'],
+                'posts/post_detail.html', '/posts/{post_id}/'
+            ],
             'posts:post_create': [
                 [], HTTPStatus.FOUND,
-                None, '/create/'],
+                None, '/create/'
+            ],
             'posts:post_edit': [
                 [], HTTPStatus.FOUND,
-                None, '/posts/{post_id}/edit/'],
+                None, '/posts/{post_id}/edit/'
+            ],
+            'posts:add_comment': [
+                [], HTTPStatus.FOUND,
+                None, '/posts/{post_id}/comment/'
+            ]
         }
         self.URLS_AUTHORIZED = {
             'posts:post_create': [
@@ -62,6 +73,10 @@ class FixturesData():
                 None,
                 '/posts/{post_id}/edit/'
             ],
+            'posts:add_comment': [
+                [], HTTPStatus.FOUND,
+                None, '/posts/{post_id}/comment/'
+            ]
         }
         self.URLS_AUTHOR = {
             'posts:post_edit': [
@@ -88,10 +103,18 @@ class FixturesData():
             'posts:post_edit'][3] = self.URLS_UNAUTHORIZED[
             'posts:post_edit'][3].format(
                 post_id=post.pk)
+        self.URLS_UNAUTHORIZED[
+            'posts:add_comment'][3] = self.URLS_UNAUTHORIZED[
+            'posts:add_comment'][3].format(
+                post_id=post.pk)
 
         self.URLS_AUTHORIZED[
             'posts:post_edit'][3] = self.URLS_AUTHORIZED[
             'posts:post_edit'][3].format(
+                post_id=post.pk)
+        self.URLS_AUTHORIZED[
+            'posts:add_comment'][3] = self.URLS_AUTHORIZED[
+            'posts:add_comment'][3].format(
                 post_id=post.pk)
 
         self.URLS_AUTHOR[
@@ -107,8 +130,12 @@ class FixturesData():
             'posts:group_list'][0].append(group.slug)
         self.URLS_UNAUTHORIZED[
             'posts:profile'][0].append(post.author.username)
+        self.URLS_UNAUTHORIZED[
+            'posts:add_comment'][0].append(post.pk)
 
         self.URLS_AUTHORIZED[
             'posts:post_edit'][0].append(post.pk)
+        self.URLS_AUTHORIZED[
+            'posts:add_comment'][0].append(post.pk)
         self.URLS_AUTHOR[
             'posts:post_edit'][0].append(post.pk)

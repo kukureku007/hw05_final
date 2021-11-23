@@ -56,7 +56,7 @@ def profile(request, username):
     author = get_object_or_404(User, username=username)
     page_obj = paginator(request, author.posts.all())
     following = False
-
+    # TODO author.following user __in
     if request.user.is_authenticated:
         if Follow.objects.filter(
             author=author,
@@ -162,7 +162,6 @@ def follow_index(request):
 
 @login_required
 def profile_follow(request, username):
-    # TODO проверка на дубли
     author = get_object_or_404(User, username=username)
     user = request.user
 

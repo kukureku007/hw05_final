@@ -57,8 +57,10 @@ class URLTests(TestCase):
                     self.assertTemplateUsed(response, template)
 
     def test_unauthorized_access(self):
-        """Проверка доступности адресов для
-        неавторизованного пользователя и шаблонов."""
+        """
+        Проверка доступности адресов для
+        неавторизованного пользователя и шаблонов.
+        """
         self.check_urls_templates(
             self.fixtures.URLS_UNAUTHORIZED, self.guest_client)
 

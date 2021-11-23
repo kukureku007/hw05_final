@@ -18,5 +18,4 @@ class CommentForm(forms.ModelForm):
         model = Comment
         fields = (
             'text',
-            # 'post'  # возможно тут будет ошибка
         )
