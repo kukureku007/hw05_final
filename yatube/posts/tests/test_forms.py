@@ -1,10 +1,18 @@
-from django.test import Client, TestCase
+import shutil
+import tempfile
+
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from ..models import Group, Post, User
 from .fixtures import FixturesData as FD
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostsFormsTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -24,13 +32,21 @@ class PostsFormsTests(TestCase):
             description=FD.TEST_GROUP_DESCRIPTION_2
         )
 
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.author)
 
     def test_post_create_edit(self):
-        """Тестирование форм создания и редактирования поста.
-        Сначала создаём пост, потом его редактируем."""
+        """
+        Тестирование форм создания и редактирования поста.
+        Сначала создаём пост, потом его редактируем
+        Добавлен тест картинок.
+        """
         posts_count = Post.objects.count()
         form_data = {
             'text': FD.TEST_POST_TEXT_1,
@@ -54,10 +70,18 @@ class PostsFormsTests(TestCase):
             post.exists()
         )
 
+        # При редактировании добавляем картинку
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=FD.TEST_IMAGE,
+            content_type='image/gif'
+        )
+
         post_id = post.first().pk
         form_data = {
             'text': FD.TEST_POST_EDIT,
             'group': PostsFormsTests.group_2.id,
+            'image': uploaded
         }
         response = self.authorized_client.post(
             reverse('posts:post_edit', args=(post_id,)),
@@ -75,6 +99,7 @@ class PostsFormsTests(TestCase):
         self.assertEqual(post_edited.text, FD.TEST_POST_EDIT)
         self.assertEqual(post_edited.group, self.group_2)
         self.assertEqual(post_edited.author, self.author)
+        self.assertEqual(post_edited.image, 'posts/small.gif')
 
 
 class CommentFormsTests(TestCase):

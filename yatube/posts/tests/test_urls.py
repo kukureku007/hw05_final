@@ -1,8 +1,8 @@
 from http import HTTPStatus
 
-from django.urls import reverse
-from django.test import Client, TestCase
 from django.core.cache import cache
+from django.test import Client, TestCase
+from django.urls import reverse
 
 from ..models import Group, Post, User
 from .fixtures import FixturesData as FD
@@ -42,14 +42,18 @@ class URLTests(TestCase):
         self.authorized_author.force_login(URLTests.author)
 
     def test_404(self):
-        """Проверка страницы 404
-        Добавлена проверка кастомного шаблона."""
+        """
+        Проверка страницы 404
+        Добавлена проверка кастомного шаблона.
+        """
         response = self.guest_client.get('unexisting_page/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.assertTemplateUsed(response, 'core/404.html')
 
     def check_urls_templates(self, urls, client):
-        """Функция тестирования доступности адресов и шаблонов."""
+        """
+        Функция тестирования доступности адресов и шаблонов.
+        """
         for key in urls.keys():
             args, code, template, url = urls[key]
             with self.subTest(key=key):
@@ -67,17 +71,24 @@ class URLTests(TestCase):
             self.fixtures.URLS_UNAUTHORIZED, self.guest_client)
 
     def test_authorized_access(self):
-        """Проверка доступности адресов для авторизованного пользователя."""
+        """
+        Проверка доступности адресов для авторизованного пользователя.
+        """
         self.check_urls_templates(
             self.fixtures.URLS_AUTHORIZED, self.authorized_client)
 
     def test_author_access(self):
-        """Проверка доступности адресов для автора поста."""
+        """
+        Проверка доступности адресов для автора поста.
+        """
         self.check_urls_templates(
             self.fixtures.URLS_AUTHOR, self.authorized_author)
 
     def test_guest_comment_redirect_login(self):
-        """Тест переадресации на логин для неавторизованного пользователя"""
+        """
+        Коммент
+        Тест переадресации на логин для неавторизованного пользователя.
+        """
         comment_url = reverse('posts:add_comment', args=(self.post_id,))
         response = self.guest_client.get(comment_url)
 
@@ -90,7 +101,10 @@ class URLTests(TestCase):
         )
 
     def test_guest_follow_redirect_login(self):
-        """Тест переадресации на логин для неавторизованного пользователя"""
+        """
+        Подписка
+        Тест переадресации на логин для неавторизованного пользователя.
+        """
         follow_url = reverse('posts:follow_index')
         response = self.guest_client.get(follow_url)
 

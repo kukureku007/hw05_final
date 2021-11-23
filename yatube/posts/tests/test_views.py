@@ -1,14 +1,18 @@
+import shutil
+import tempfile
+
 from django import forms
 from django.conf import settings
-from django.test import Client, TestCase
-from django.urls import reverse
-
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
+from django.urls import reverse
 
 from ..models import Group, Post, User
 from .fixtures import FixturesData as FD
 
 POSTS_TO_SHOW = settings.POSTS_TO_SHOW
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
 class ViewsTests(TestCase):
@@ -63,19 +67,25 @@ class ViewsTests(TestCase):
         self.authorized_author.force_login(self.author_1)
 
     def check_post_present(self, url, args, post):
-        """Проверка, что post находится по адресу url."""
+        """
+        Проверка, что post находится по адресу url.
+        """
         response = self.guest_client.get(reverse(
             url, args=args))
         self.assertIn(post, response.context['page_obj'])
 
     def check_post_not_present(self, url, args, post):
-        """Проверка, что post не находится по адресу url."""
+        """
+        Проверка, что post не находится по адресу url.
+        """
         response = self.guest_client.get(reverse(
             url, args=args))
         self.assertNotIn(post, response.context['page_obj'])
 
     def test_cache_index(self):
-        """Тест кэширования."""
+        """
+        Тест кэширования.
+        """
         post = Post.objects.create(
             author=self.author_1,
             text=FD.TEST_POST_CACHE,
@@ -91,8 +101,10 @@ class ViewsTests(TestCase):
         self.assertNotIn(FD.TEST_POST_CACHE, response.content.decode())
 
     def test_post_present(self):
-        """Тестирование, что Пост1, у которого Автор1 и Группа1
-        попал в нужный контекст на страницах."""
+        """
+        Тестирование, что Пост1, у которого Автор1 и Группа1
+        попал в нужный контекст на страницах.
+        """
         self.check_post_present('posts:home_page', None, self.post_1)
         self.check_post_present('posts:group_list', (
             FD.TEST_GROUP_SLUG_1,), self.post_1)
@@ -104,14 +116,18 @@ class ViewsTests(TestCase):
             FD.AUTHOR_USERNAME_2,), self.post_1)
 
     def test_context_index(self):
-        """Тестирование контекста главной страницы"""
+        """
+        Тестирование контекста главной страницы
+        """
         response = self.guest_client.get(reverse('posts:home_page'))
         self.assertIn(self.post_1, response.context['page_obj'])
         self.assertIn(self.post_2, response.context['page_obj'])
         self.assertIn(self.post_3, response.context['page_obj'])
 
     def test_context_group_list(self):
-        """Тестирование контекста группы"""
+        """
+        Тестирование контекста группы
+        """
         response = self.guest_client.get(reverse(
             'posts:group_list', args=(FD.TEST_GROUP_SLUG_1,)))
         for obj in response.context['page_obj']:
@@ -119,7 +135,9 @@ class ViewsTests(TestCase):
                 self.assertEqual(obj.group.slug, FD.TEST_GROUP_SLUG_1)
 
     def test_context_profile(self):
-        """Тестирование контекста профиля"""
+        """
+        Тестирование контекста профиля.
+        """
         response = self.guest_client.get(reverse(
             'posts:profile', args=(FD.AUTHOR_USERNAME_2,)))
         for obj in response.context['page_obj']:
@@ -127,7 +145,9 @@ class ViewsTests(TestCase):
                 self.assertEqual(obj.author.username, FD.AUTHOR_USERNAME_2)
 
     def test_context_post_detail(self):
-        """Проверка контекста поста."""
+        """
+        Проверка контекста поста.
+        """
         post_pk = self.post_3.pk
         response = self.guest_client.get(reverse(
             'posts:post_detail', args=(post_pk,)))
@@ -140,7 +160,9 @@ class ViewsTests(TestCase):
         self.assertEqual(responsed_pk, post_pk)
 
     def test_context_create_post(self):
-        """Проверка контекста формы создания поста."""
+        """
+        Проверка контекста формы создания поста.
+        """
         response = self.authorized_client.get(reverse('posts:post_create'))
         form_fields = {
             'text': forms.fields.CharField,
@@ -153,7 +175,9 @@ class ViewsTests(TestCase):
                 self.assertIsInstance(form_field, expected)
 
     def test_context_edit_post(self):
-        """Проверка контекста формы редоктирования поста."""
+        """
+        Проверка контекста формы редоктирования поста.
+        """
         post_pk = self.post_1.pk
         response = self.authorized_author.get(reverse(
             'posts:post_edit', args=[post_pk]))
@@ -169,9 +193,11 @@ class ViewsTests(TestCase):
                 self.assertIsInstance(form_field, expected)
 
     def test_context_follows(self):
-        """Новая запись пользователя появляется
+        """
+        Новая запись пользователя появляется
         в ленте тех, кто на него подписан и не
-        появляется в ленте тех, кто не подписан."""
+        появляется в ленте тех, кто не подписан.
+        """
         # user
         self.authorized_client.get(
             reverse('posts:profile_follow', args=(
@@ -261,8 +287,10 @@ class TemplateViewsTest(TestCase):
         self.authorized_author.force_login(self.author_1)
 
     def check_reverse_urls_templates(self, urls, client):
-        """Функция тестирования доступности адресов и шаблонов
-        с использованием reverse."""
+        """
+        Функция тестирования доступности адресов и шаблонов
+        с использованием reverse.
+        """
         for url_rev in urls.keys():
             args, code, template, url = urls[url_rev]
             with self.subTest(url=url_rev):
@@ -272,8 +300,10 @@ class TemplateViewsTest(TestCase):
                     self.assertTemplateUsed(response, template)
 
     def test_templates(self):
-        """Тестирование шаблонов и адресов
-        с использованием reverse."""
+        """
+        Тестирование шаблонов и адресов
+        с использованием reverse.
+        """
         self.check_reverse_urls_templates(
             self.fixtures.URLS_UNAUTHORIZED, self.guest_client)
         self.check_reverse_urls_templates(
@@ -305,7 +335,9 @@ class PaginatorViewsTest(TestCase):
         self.guest_client = Client()
 
     def test_paginator_page(self):
-        """Тестирование паджинатора"""
+        """
+        Тестирование паджинатора.
+        """
         for url in FD.URLS_PAGINATOR.keys():
             with self.subTest(url=url):
                 response = self.client.get(reverse(
@@ -316,3 +348,88 @@ class PaginatorViewsTest(TestCase):
                     url, args=FD.URLS_PAGINATOR[url]) + '?page=2')
                 self.assertEqual(len(response.context['page_obj']),
                                  FD.POST_NUM - POSTS_TO_SHOW)
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class ImageViewsTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.author = User.objects.create_user(
+            username=FD.AUTHOR_USERNAME_1)
+
+        cls.group = Group.objects.create(
+            title=FD.TEST_GROUP_TITLE_1,
+            slug=FD.TEST_GROUP_SLUG_1,
+            description=FD.TEST_GROUP_DESCRIPTION_1
+        )
+
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=FD.TEST_IMAGE,
+            content_type='image/gif'
+        )
+
+        cls.post = Post.objects.create(
+            text=FD.TEST_POST_TEXT_1,
+            group=cls.group,
+            author=cls.author,
+            image=uploaded
+        )
+        cls.post_id = cls.post.pk
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        cache.clear()
+        self.guest_client = Client()
+
+    def test_image_home(self):
+        """
+        Тест картинки на главной странице.
+        """
+        response = self.guest_client.get(reverse('posts:home_page'))
+        self.assertEqual(
+            response.context['page_obj'][0].image,
+            self.post.image,
+        )
+
+    def test_image_profile(self):
+        """
+        Тест картинки на странице автора.
+        """
+        response = self.guest_client.get(
+            reverse('posts:profile', args=(self.author.username,))
+        )
+        self.assertEqual(
+            response.context['page_obj'][0].image,
+            self.post.image,
+        )
+
+    def test_image_group(self):
+        """
+        Тест картинки на странице группы.
+        """
+        response = self.guest_client.get(
+            reverse('posts:group_list', args=(self.group.slug,))
+        )
+        self.assertEqual(
+            response.context['page_obj'][0].image,
+            self.post.image,
+        )
+
+    def test_image_post_detail(self):
+        """
+        Тест картинки на странице поста.
+        """
+        response = self.guest_client.get(
+            reverse('posts:post_detail', args=(self.post_id,))
+        )
+        self.assertEqual(
+            response.context['post'].image,
+            self.post.image,
+        )
