@@ -29,7 +29,7 @@ class URLTests(TestCase):
             text=FD.TEST_POST_TEXT_1
         )
 
-        cls.fixtures.make_dict_url(cls.post, cls.group)
+        cls.fixtures.make_dict(cls.post, cls.group)
 
     def setUp(self):
         cache.clear()
@@ -40,9 +40,11 @@ class URLTests(TestCase):
         self.authorized_author.force_login(URLTests.author)
 
     def test_404(self):
-        """Проверка страницы 404."""
+        """Проверка страницы 404
+        Добавлена проверка кастомного шаблона."""
         response = self.guest_client.get('unexisting_page/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        self.assertTemplateUsed(response, 'core/404.html')
 
     def check_urls_templates(self, urls, client):
         """Функция тестирования доступности адресов и шаблонов."""
@@ -57,12 +59,15 @@ class URLTests(TestCase):
     def test_unauthorized_access(self):
         """Проверка доступности адресов для
         неавторизованного пользователя и шаблонов."""
-        self.check_urls_templates(self.fixtures.URLS_UNAUTHORIZED, self.guest_client)
+        self.check_urls_templates(
+            self.fixtures.URLS_UNAUTHORIZED, self.guest_client)
 
     def test_authorized_access(self):
         """Проверка доступности адресов для авторизованного пользователя."""
-        self.check_urls_templates(self.fixtures.URLS_AUTHORIZED, self.authorized_client)
+        self.check_urls_templates(
+            self.fixtures.URLS_AUTHORIZED, self.authorized_client)
 
     def test_author_access(self):
         """Проверка доступности адресов для автора поста."""
-        self.check_urls_templates(self.fixtures.URLS_AUTHOR, self.authorized_author)
+        self.check_urls_templates(
+            self.fixtures.URLS_AUTHOR, self.authorized_author)

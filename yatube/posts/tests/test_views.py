@@ -59,20 +59,36 @@ class ViewsTests(TestCase):
         self.authorized_author.force_login(self.author_1)
 
     def check_post_present(self, url, args, post):
-        """Проверка, что post находится по адресу url"""
+        """Проверка, что post находится по адресу url."""
         response = self.guest_client.get(reverse(
             url, args=args))
         self.assertIn(post, response.context['page_obj'])
 
     def check_post_not_present(self, url, args, post):
-        """Проверка, что post не находится по адресу url"""
+        """Проверка, что post не находится по адресу url."""
         response = self.guest_client.get(reverse(
             url, args=args))
         self.assertNotIn(post, response.context['page_obj'])
 
+    def test_cache_index(self):
+        """Тест кэширования."""
+        post = Post.objects.create(
+            author=self.author_1,
+            text=FD.TEST_POST_CACHE,
+            group=self.group_1
+        )
+        response = self.guest_client.get(reverse('posts:home_page'))
+        self.assertIn(FD.TEST_POST_CACHE, response.content.decode())
+        post.delete()
+        response = self.guest_client.get(reverse('posts:home_page'))
+        self.assertIn(FD.TEST_POST_CACHE, response.content.decode())
+        cache.clear()
+        response = self.guest_client.get(reverse('posts:home_page'))
+        self.assertNotIn(FD.TEST_POST_CACHE, response.content.decode())
+
     def test_post_present(self):
         """Тестирование, что Пост1, у которого Автор1 и Группа1
-        попал в нужный контекст на страницах"""
+        попал в нужный контекст на страницах."""
         self.check_post_present('posts:home_page', None, self.post_1)
         self.check_post_present('posts:group_list', (
             FD.TEST_GROUP_SLUG_1,), self.post_1)
@@ -189,7 +205,7 @@ class TemplateViewsTest(TestCase):
             text=FD.TEST_POST_WO_GROUP_TEXT,
         )
 
-        cls.fixtures.make_dict_reverse(cls.post_1, cls.group_1)
+        cls.fixtures.make_dict(cls.post_1, cls.group_1)
 
     def setUp(self):
         cache.clear()

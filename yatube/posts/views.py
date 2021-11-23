@@ -94,7 +94,6 @@ def post_create(request):
         request.POST or None,
         files=request.FILES or None
     )
-    # print(request.FILES)
     if request.method == 'POST':
         if form.is_valid():
             post = form.save(commit=False)
@@ -168,8 +167,8 @@ def profile_follow(request, username):
     user = request.user
 
     if user == author:
-        return redirect('posts:profile', username)    
-    
+        return redirect('posts:profile', username)
+
     if author.following.all().filter(user=user).exists():
         return redirect('posts:profile', username)
 

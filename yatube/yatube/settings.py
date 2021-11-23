@@ -85,6 +85,8 @@ CACHES = {
     }
 }
 
+CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
+
 # LANGUAGE_CODE = 'en-us'
 LANGUAGE_CODE = 'ru'
 TIME_ZONE = 'UTC'

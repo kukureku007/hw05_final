@@ -13,6 +13,7 @@ class FixturesData():
     TEST_POST_TEXT_2 = 'POST2'
     TEST_POST_WO_GROUP_TEXT = 'FDFSDFSDFSDFSD'
     TEST_POST_EDIT = 'EDITED INFOFO'
+    TEST_POST_CACHE = 'cache-cache-cache'
 
     AUTHOR_USERNAME_1 = 'SteveJ'
     AUTHOR_USERNAME_2 = 'SteveV'
@@ -21,51 +22,57 @@ class FixturesData():
     POST_TEXT = 'text'
     POST_NUM = 13
 
-    # Структура словаря:
-    # reverse: reverse-args, HTTPStatus, template, url
-    URLS_UNAUTHORIZED = {
-        'posts:home_page': [[], HTTPStatus.OK,
-                            'posts/index.html', '/'],
-        'posts:group_list': [[], HTTPStatus.OK,
-                             'posts/group_list.html', '/group/{slug}/'],
-        'posts:profile': [[], HTTPStatus.OK,
-                          'posts/profile.html', '/profile/{username}/'],
-        'posts:post_detail': [[], HTTPStatus.OK,
-                              'posts/post_detail.html', '/posts/{post_id}/'],
-        'posts:post_create': [[], HTTPStatus.FOUND,
-                              None, '/create/'],
-        'posts:post_edit': [[], HTTPStatus.FOUND,
-                            None, '/posts/{post_id}/edit/'],
-    }
-
-    URLS_AUTHORIZED = {
-        'posts:post_create': [
-            [], HTTPStatus.OK,
-            'posts/create_post.html',
-            '/create/'
-        ],
-        'posts:post_edit': [
-            [], HTTPStatus.FOUND,
-            None,
-            '/posts/{post_id}/edit/'
-        ],
-    }
-
-    URLS_AUTHOR = {
-        'posts:post_edit': [
-            [], HTTPStatus.OK,
-            'posts/create_post.html',
-            '/posts/{post_id}/edit/'
-        ],
-    }
-
     URLS_PAGINATOR = {
         'posts:home_page': None,
         'posts:group_list': (TEST_GROUP_SLUG_1,),
         'posts:profile': (AUTHOR_USERNAME_1,),
     }
 
-    def make_dict_url(self, post, group):
+    def __init__(self) -> None:
+        """создание базовых словарей для тестов
+        reverse: reverse-args, HTTPStatus, template, url."""
+        self.URLS_UNAUTHORIZED = {
+            'posts:home_page': [
+                [], HTTPStatus.OK,
+                'posts/index.html', '/'],
+            'posts:group_list': [
+                [], HTTPStatus.OK,
+                'posts/group_list.html', '/group/{slug}/'],
+            'posts:profile': [
+                [], HTTPStatus.OK,
+                'posts/profile.html', '/profile/{username}/'],
+            'posts:post_detail': [
+                [], HTTPStatus.OK,
+                'posts/post_detail.html', '/posts/{post_id}/'],
+            'posts:post_create': [
+                [], HTTPStatus.FOUND,
+                None, '/create/'],
+            'posts:post_edit': [
+                [], HTTPStatus.FOUND,
+                None, '/posts/{post_id}/edit/'],
+        }
+        self.URLS_AUTHORIZED = {
+            'posts:post_create': [
+                [], HTTPStatus.OK,
+                'posts/create_post.html',
+                '/create/'
+            ],
+            'posts:post_edit': [
+                [], HTTPStatus.FOUND,
+                None,
+                '/posts/{post_id}/edit/'
+            ],
+        }
+        self.URLS_AUTHOR = {
+            'posts:post_edit': [
+                [], HTTPStatus.OK,
+                'posts/create_post.html',
+                '/posts/{post_id}/edit/'
+            ],
+        }
+
+    def make_dict(self, post, group):
+        """Формирование тестовых словарей с данными."""
         self.URLS_UNAUTHORIZED[
             'posts:group_list'][3] = self.URLS_UNAUTHORIZED[
             'posts:group_list'][3].format(slug=group.slug)
@@ -92,7 +99,6 @@ class FixturesData():
             'posts:post_edit'][3].format(
                 post_id=post.pk)
 
-    def make_dict_reverse(self, post, group):
         self.URLS_UNAUTHORIZED[
             'posts:post_detail'][0].append(post.pk)
         self.URLS_UNAUTHORIZED[
