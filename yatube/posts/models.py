@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -89,6 +90,29 @@ class Follow(models.Model):
         on_delete=models.CASCADE,
         related_name='following'
     )
+
+    def clean(self):
+        super().clean()
+        if self.user == self.author:
+            raise ValidationError('user==author')
+
+    def validate_unique(self, exclude=None):
+        super().validate_unique()
+        if self.author.following.all().filter(
+            user=self.user
+        ).exists():
+            raise ValidationError('user->author exists')
+
+    def is_model_valid(self):
+        """
+        Проверяет соответствует ли модель условиям
+        Пройдёт ли валидацию перед сохранением
+        """
+        try:
+            self.full_clean()
+            return True
+        except ValidationError:
+            return False
 
     class Meta:
         verbose_name = 'Подписка'

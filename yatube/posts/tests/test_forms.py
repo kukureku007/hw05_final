@@ -146,4 +146,7 @@ class CommentFormsTests(TestCase):
         response = self.guest_client.get(
             reverse('posts:post_detail', args=(self.post_id,))
         )
-        self.assertIn(self.post.comments.first(), response.context['comments'])
+        self.assertIn(
+            self.post.comments.first(),
+            response.context['post'].comments.all()
+        )
