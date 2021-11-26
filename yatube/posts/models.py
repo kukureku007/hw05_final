@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.core.exceptions import ValidationError
+# from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -91,32 +91,19 @@ class Follow(models.Model):
         related_name='following'
     )
 
-    def clean(self):
-        super().clean()
-        if self.user == self.author:
-            raise ValidationError('user==author')
-
-    def validate_unique(self, exclude=None):
-        super().validate_unique()
-        if self.author.following.all().filter(
-            user=self.user
-        ).exists():
-            raise ValidationError('user->author exists')
-
-    def is_model_valid(self):
-        """
-        Проверяет соответствует ли модель условиям
-        Пройдёт ли валидацию перед сохранением
-        """
-        try:
-            self.full_clean()
-            return True
-        except ValidationError:
-            return False
-
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('user', 'author'),
+                name='unique_follow'
+            ),
+            models.CheckConstraint(
+                check=models.Q(_negated=True, user=models.F('author')),
+                name='author_and_follower_can_not_be_equal'
+            )
+        )
 
     def __str__(self):
         return str(f'{self.user.username}->{self.author.username}')

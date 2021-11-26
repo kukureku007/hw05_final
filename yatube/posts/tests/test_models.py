@@ -50,3 +50,6 @@ class PostModelTest(TestCase):
         for value, expected in objects_names.items():
             with self.subTest(value=value):
                 self.assertEqual(value, expected)
+
+    # def test_model_save_follow(self):
+    #     pass

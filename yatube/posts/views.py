@@ -1,9 +1,11 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.shortcuts import (get_object_or_404, redirect,
-                              render)
+from django.db.utils import IntegrityError
+# from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
@@ -153,12 +155,22 @@ def follow_index(request):
 
 @login_required
 def profile_follow(request, username):
+    author = get_object_or_404(User, username=username)
     follow = Follow(
-        author=get_object_or_404(User, username=username),
-        user=request.user
+        author=author,
+        user=request.user,
     )
-    if follow.is_model_valid():
+
+    try:
         follow.save()
+    # except ValidationError as e:
+    except ValidationError:
+        # raise Http404(e.message)
+        pass
+    # except IntegrityError as e:
+    except IntegrityError:
+        # raise Http404(e.__cause__)
+        pass
 
     return redirect('posts:profile', username)
 
