@@ -4,7 +4,6 @@ from django.shortcuts import render
 
 def page_not_found(request, exception):
     """Страница не найдена"""
-    print(exception)
     context = {
         'path': request.path,
         'exception': exception,

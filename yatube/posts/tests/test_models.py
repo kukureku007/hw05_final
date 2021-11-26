@@ -3,6 +3,8 @@ from django.test import TestCase
 from ..models import Group, Post, User, Comment, Follow
 from .fixtures import FixturesData as FD
 
+from django.db.utils import IntegrityError
+
 
 class PostModelTest(TestCase):
     @classmethod
@@ -51,5 +53,32 @@ class PostModelTest(TestCase):
             with self.subTest(value=value):
                 self.assertEqual(value, expected)
 
-    # def test_model_save_follow(self):
-    #     pass
+    def test_follow_unique_constrait(self):
+        """
+        Проверяем, что нельзя дважды подписаться на одного автора.
+        """
+        with self.assertRaises(
+            IntegrityError,
+        ) as context:
+            Follow(
+                user=self.user,
+                author=self.author
+            ).save()
+            Follow(
+                user=self.user,
+                author=self.author
+            ).save()
+        self.assertTrue('UNIQUE constraint failed' in str(context.exception))
+
+    def test_follow_equal_constrait(self):
+        """
+        Проверяем, что нельзя подписаться на самого себя.
+        """
+        with self.assertRaises(
+            IntegrityError,
+        ) as context:
+            Follow(
+                user=self.user,
+                author=self.user
+            ).save()
+        self.assertTrue('CHECK constraint failed' in str(context.exception))
