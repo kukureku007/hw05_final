@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.utils import IntegrityError
 # from django.http import Http404
@@ -61,7 +60,8 @@ def profile(request, username):
 
     following = True if (
         request.user.is_authenticated
-        and author.following.filter(user=request.user).exists()) else False
+        and author.following.filter(user=request.user).exists()
+    ) else False
 
     context = {
         'page_obj': page_obj,
@@ -73,11 +73,15 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
+    is_edit_allowed = True if (
+        request.user == post.author
+    ) else False
     context = {
         'post': post,
         'form': CommentForm(
             request.POST or None
-        )
+        ),
+        'is_edit_allowed': is_edit_allowed,
     }
     return render(request, TEMPLATES['post_detail'], context)
 
@@ -155,18 +159,11 @@ def follow_index(request):
 
 @login_required
 def profile_follow(request, username):
-    author = get_object_or_404(User, username=username)
-    follow = Follow(
-        author=author,
-        user=request.user,
-    )
-
     try:
-        follow.save()
-    # except ValidationError as e:
-    except ValidationError:
-        # raise Http404(e.message)
-        pass
+        Follow(
+            author=get_object_or_404(User, username=username),
+            user=request.user,
+        ).save()
     # except IntegrityError as e:
     except IntegrityError:
         # raise Http404(e.__cause__)
