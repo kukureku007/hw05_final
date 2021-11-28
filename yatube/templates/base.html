@@ -11,9 +11,18 @@
     <meta name="msapplication-TileColor" content="#da532c">
     <meta name="theme-color" content="#ffffff">
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <title>
     {% block title %} Название страницы {% endblock %}
     </title>
+    <style>
+      nav .navbar-nav .nav-item .link-white{
+        color: white;
+      }
+      nav .navbar-nav .nav-item .link-blue{
+        color: #0d6efd;
+      }
+    </style>
   </head>
   <body>
     {% include 'includes/header.html' %}
