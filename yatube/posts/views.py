@@ -33,7 +33,10 @@ def paginator(request, posts):
 
 @cache_page(20)
 def index(request):
-    posts = Post.objects.all()
+    posts = Post.objects.all().select_related(
+        'author',
+        'group'
+    )
     page_obj = paginator(request, posts)
 
     context = {
@@ -44,8 +47,10 @@ def index(request):
 
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
-    posts = group.posts.all()
-    page_obj = paginator(request, posts)
+    page_obj = paginator(
+        request,
+        group.posts.all().prefetch_related('author'),
+    )
 
     context = {
         'group': group,
@@ -56,7 +61,10 @@ def group_posts(request, slug):
 
 def profile(request, username):
     author = get_object_or_404(User, username=username)
-    page_obj = paginator(request, author.posts.all())
+    page_obj = paginator(
+        request,
+        author.posts.all().prefetch_related('group')
+    )
 
     following = True if (
         request.user.is_authenticated
@@ -72,7 +80,13 @@ def profile(request, username):
 
 
 def post_detail(request, post_id):
-    post = get_object_or_404(Post, pk=post_id)
+    post = get_object_or_404(
+        Post.objects.select_related(
+            'author',
+            'group',
+        ),
+        pk=post_id
+    )
     is_edit_allowed = True if (
         request.user == post.author
     ) else False
@@ -144,10 +158,22 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
-    user = request.user
-    authors = user.follower.all().values('author')
+    # authors = request.user.follower.values('author')
+    # posts = Post.objects.filter(
+    #     author__in=authors
+    # ).select_related('author', 'group',)
 
-    posts = Post.objects.filter(author__in=authors)
+    # authors = request.user.follower.values('author')
+    # posts = Post.objects.none()
+    # if authors.exists():
+    #     for a in authors:
+    #         posts |= get_object_or_404(
+    #             User, pk=a['author']
+    #         ).posts.select_related('author', 'group',).all()
+
+    posts = Post.objects.filter(
+        author__following__user=request.user
+    ).select_related('author', 'group',)
 
     page_obj = paginator(request, posts)
 
@@ -160,10 +186,10 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     try:
-        Follow(
+        Follow.objects.create(
             author=get_object_or_404(User, username=username),
             user=request.user,
-        ).save()
+        )
     # except IntegrityError as e:
     except IntegrityError:
         # raise Http404(e.__cause__)
