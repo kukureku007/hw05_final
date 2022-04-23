@@ -1,12 +1,13 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.utils import IntegrityError
-# from django.http import Http404
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.cache import cache_page
+# from django.views.decorators.cache import cache_page
 
 from .forms import CommentForm, PostForm
 from .models import Follow, Group, Post
@@ -23,6 +24,12 @@ TEMPLATES = {
     'follow': 'posts/follow.html'
 }
 
+CACHE_KEYS = {
+    'index': 'index-cache',
+    'follow': 'follows-{user}',
+    'group_posts': '{slug}-posts',
+}
+
 
 def paginator(request, posts):
     pag = Paginator(posts, POSTS_TO_SHOW)
@@ -31,12 +38,19 @@ def paginator(request, posts):
     return page_obj
 
 
-@cache_page(20)
 def index(request):
-    posts = Post.objects.all().select_related(
-        'author',
-        'group'
-    )
+    """
+    Вывод постов на главной странице.
+    Добавлены: пагинация, кэш.
+    """
+    posts = cache.get(CACHE_KEYS['index'])
+    if not posts:
+        posts = Post.objects.all().select_related(
+            'author',
+            'group'
+        )
+        cache.set(CACHE_KEYS['index'], posts)
+
     page_obj = paginator(request, posts)
 
     context = {
@@ -46,10 +60,27 @@ def index(request):
 
 
 def group_posts(request, slug):
-    group = get_object_or_404(Group, slug=slug)
+    """
+    Вывод постов одной группы.
+    Добавлены: пагинация, кэш.
+    """
+    group_posts = cache.get(CACHE_KEYS['group_posts'].format(slug=slug))
+    if not group_posts:
+        group_posts = get_object_or_404(
+            Group,
+            slug=slug
+        ).posts.all().prefetch_related('author')
+        cache.set(CACHE_KEYS['group_posts'].format(slug=slug), group_posts)
+
+    group = None
+    if group_posts.count() > 1:
+        group = group_posts[0].group.slug
+    else:
+        group = get_object_or_404(Group, slug=slug)
+
     page_obj = paginator(
         request,
-        group.posts.all().prefetch_related('author'),
+        group_posts,
     )
 
     context = {
@@ -59,6 +90,7 @@ def group_posts(request, slug):
     return render(request, TEMPLATES['group_list'], context)
 
 
+# cache author posts counts and
 def profile(request, username):
     author = get_object_or_404(User, username=username)
     page_obj = paginator(
@@ -79,6 +111,7 @@ def profile(request, username):
     return render(request, TEMPLATES['profile'], context)
 
 
+# cache post, comments
 def post_detail(request, post_id):
     post = get_object_or_404(
         Post.objects.select_related(
@@ -100,6 +133,7 @@ def post_detail(request, post_id):
     return render(request, TEMPLATES['post_detail'], context)
 
 
+# clear cache of group author
 @login_required
 def post_create(request):
     form = PostForm(
@@ -120,6 +154,7 @@ def post_create(request):
     return render(request, TEMPLATES['create_post'], context)
 
 
+# clear cache of group if required
 @login_required
 def post_edit(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
@@ -144,6 +179,7 @@ def post_edit(request, post_id):
     return render(request, TEMPLATES['create_post'], context)
 
 
+# clear cache comment post
 @login_required
 def add_comment(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
@@ -158,22 +194,16 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
-    # authors = request.user.follower.values('author')
-    # posts = Post.objects.filter(
-    #     author__in=authors
-    # ).select_related('author', 'group',)
-
-    # authors = request.user.follower.values('author')
-    # posts = Post.objects.none()
-    # if authors.exists():
-    #     for a in authors:
-    #         posts |= get_object_or_404(
-    #             User, pk=a['author']
-    #         ).posts.select_related('author', 'group',).all()
-
-    posts = Post.objects.filter(
-        author__following__user=request.user
-    ).select_related('author', 'group',)
+    """
+    Вывод постов всех авторов, на которых подписан текущий пользователь.
+    Добавлены: пагинация, кэш.
+    """
+    posts = cache.get(CACHE_KEYS['follow'].format(user=request.user))
+    if not posts:
+        posts = Post.objects.filter(
+            author__following__user=request.user
+        ).select_related('author', 'group',)
+        cache.set(CACHE_KEYS['follow'].format(user=request.user), posts)
 
     page_obj = paginator(request, posts)
 
@@ -185,26 +215,31 @@ def follow_index(request):
 
 @login_required
 def profile_follow(request, username):
+    """
+    Подписка на автора.
+    Добавлены: кэш.
+    """
     try:
         Follow.objects.create(
             author=get_object_or_404(User, username=username),
             user=request.user,
         )
-    # except IntegrityError as e:
-    except IntegrityError:
-        # raise Http404(e.__cause__)
-        pass
-
+        cache.delete(CACHE_KEYS['follow'].format(user=request.user))
+    except IntegrityError as e:
+        raise Http404(e.__cause__)
     return redirect('posts:profile', username)
 
 
 @login_required
 def profile_unfollow(request, username):
-    author = get_object_or_404(User, username=username)
-
-    Follow.objects.filter(
+    """
+    Отписка от автора.
+    Добавлены: кэш.
+    """
+    get_object_or_404(
+        Follow,
         user=request.user,
-        author=author
+        author=User.objects.get(username=username)
     ).delete()
-
+    cache.delete(CACHE_KEYS['follow'].format(user=request.user))
     return redirect('posts:profile', username)

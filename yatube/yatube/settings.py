@@ -1,22 +1,16 @@
 import os
-from dotenv import load_dotenv
-# import sentry_sdk
-# from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = False
+SECRET_KEY = 'las(x=5vddyc76##kj5bevgk&lsz*dy0eceszx+q91pzr-1cw)'
+DEBUG = True
 
 ALLOWED_HOSTS = [
-    os.getenv('DOMAIN_NAME'),
-    'kukureku007.ddns.net',
     'localhost',
     '127.0.0.1',
     '[::1]',
     'testserver',
 ]
 
-# IP-адреса DjDT
 INTERNAL_IPS = [
     '127.0.0.1',
 ]
@@ -72,12 +66,8 @@ WSGI_APPLICATION = 'yatube.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('POSTGRES_USER'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT')
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
@@ -99,6 +89,7 @@ AUTH_PASSWORD_VALIDATORS = [
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'TIMEOUT': 60,
     }
 }
 
@@ -116,3 +107,12 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+LOGIN_URL = 'users:login'
+LOGIN_REDIRECT_URL = 'posts:home_page'
+# LOGOUT_REDIRECT_URL = 'posts:index'
+
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
+
+POSTS_TO_SHOW = 10
