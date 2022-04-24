@@ -25,15 +25,15 @@ TEMPLATES = {
 }
 
 CACHE_KEYS = {
-    'index': 'index-cache',
-    'follow': 'follows-{user}',
-    'group_posts': '{slug}-posts',
+    'index': 'index-{page}',
+    'follow': 'follow-{user}',
+    'group_posts': '{slug}-posts-{page}',
+    'author_posts': '{author}-posts-{page}',
 }
 
 
-def paginator(request, posts):
+def paginator(posts, page_number):
     pag = Paginator(posts, POSTS_TO_SHOW)
-    page_number = request.GET.get('page')
     page_obj = pag.get_page(page_number)
     return page_obj
 
@@ -41,17 +41,21 @@ def paginator(request, posts):
 def index(request):
     """
     Вывод постов на главной странице.
-    Добавлены: пагинация, кэш.
+    Кэш работает по страницам пагинации.
     """
-    posts = cache.get(CACHE_KEYS['index'])
-    if not posts:
-        posts = Post.objects.all().select_related(
-            'author',
-            'group'
-        )
-        cache.set(CACHE_KEYS['index'], posts)
+    page_number = request.GET.get('page')
+    page_obj = cache.get(CACHE_KEYS['index'].format(page=page_number))
 
-    page_obj = paginator(request, posts)
+    if not page_obj:
+        page_obj = paginator(
+            Post.objects.all()
+            .select_related(
+                'author',
+                'group'
+            ),
+            page_number
+        )
+        cache.set(CACHE_KEYS['index'].format(page=page_number), page_obj)
 
     context = {
         'page_obj': page_obj,
@@ -62,26 +66,36 @@ def index(request):
 def group_posts(request, slug):
     """
     Вывод постов одной группы.
-    Добавлены: пагинация, кэш.
+    Кэш работает по страницам пагинации.
     """
-    group_posts = cache.get(CACHE_KEYS['group_posts'].format(slug=slug))
-    if not group_posts:
-        group_posts = get_object_or_404(
-            Group,
-            slug=slug
-        ).posts.all().prefetch_related('author')
-        cache.set(CACHE_KEYS['group_posts'].format(slug=slug), group_posts)
-
+    page_number = request.GET.get('page')
+    page_obj = cache.get(
+        CACHE_KEYS['group_posts'].format(
+            slug=slug,
+            page=page_number
+        )
+    )
+    if not page_obj:
+        page_obj = paginator(
+            get_object_or_404(
+                Group,
+                slug=slug
+            ).posts.all().prefetch_related('author'),
+            page_number
+        )
+        cache.set(
+            CACHE_KEYS['group_posts'].format(
+                slug=slug,
+                page=page_number
+            ),
+            page_obj
+        )
     group = None
-    if group_posts.count() > 1:
-        group = group_posts[0].group.slug
+
+    if page_obj.object_list.count() > 1:
+        group = page_obj.object_list[0].group
     else:
         group = get_object_or_404(Group, slug=slug)
-
-    page_obj = paginator(
-        request,
-        group_posts,
-    )
 
     context = {
         'group': group,
@@ -90,12 +104,16 @@ def group_posts(request, slug):
     return render(request, TEMPLATES['group_list'], context)
 
 
-# cache author posts counts and
+# cache author and author_posts
 def profile(request, username):
+    page_number = request.GET.get('page')
     author = get_object_or_404(User, username=username)
+    posts = author.posts.all().prefetch_related('group')
+    posts_count = posts.count
+
     page_obj = paginator(
-        request,
-        author.posts.all().prefetch_related('group')
+        posts,
+        page_number
     )
 
     following = True if (
@@ -106,7 +124,8 @@ def profile(request, username):
     context = {
         'page_obj': page_obj,
         'author': author,
-        'following': following
+        'following': following,
+        'posts_count': posts_count
     }
     return render(request, TEMPLATES['profile'], context)
 
@@ -198,6 +217,7 @@ def follow_index(request):
     Вывод постов всех авторов, на которых подписан текущий пользователь.
     Добавлены: пагинация, кэш.
     """
+    page_number = request.GET.get('page')
     posts = cache.get(CACHE_KEYS['follow'].format(user=request.user))
     if not posts:
         posts = Post.objects.filter(
@@ -205,7 +225,7 @@ def follow_index(request):
         ).select_related('author', 'group',)
         cache.set(CACHE_KEYS['follow'].format(user=request.user), posts)
 
-    page_obj = paginator(request, posts)
+    page_obj = paginator(posts, page_number)
 
     context = {
         'page_obj': page_obj,
